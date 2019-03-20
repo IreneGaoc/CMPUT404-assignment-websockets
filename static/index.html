@@ -1,13 +1,13 @@
 <!DOCTYPE HTML>
 <html> 
   <head> 
-    <title>Websockets Assignment</title> 
+    <title>AJAX Assignment</title> 
     <meta charset="utf-8" /> 
     <meta content='width=device-width; height=device-height; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;' name='viewport' />
     <meta name="viewport" content="width=device-width" />
     <meta name="license" content="
-        Copyright 2013 Google, Abram Hindle
-        
+        Copyright 2013 Abram Hindle
+        Copyright 2019 Irene Gao
         Licensed under the Apache License, Version 2.0 (the "License");
         you may not use this file except in compliance with the License.
         You may obtain a copy of the License at
@@ -22,41 +22,93 @@
     "/>
     <script src="json2.js"></script>
   </head> 
-  <body bgcolor="white" height="100%" width="100%"> 
-    <div id="debug"></div>
+  
+  <body bgcolor="black" height="100%" width="100%"> 
+    
     <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas> 
+   
+    <!-- <button style="background:#FFD700" onclick="switch_button()">switch color</button>   -->
+   
+    <p  id="text" style="color:#FFD700;font-size: 25px;">switch colors<input type="checkbox" id="myCheck" onclick="myFunction()"><button style="background:#F0AECB;font-size: 25px;" onclick="clear_button()">clear</button></p>
 
     <script>
-      // Fix me
 var canvas = document.getElementById('c');
 var host = window.location.host;
 var context = canvas.getContext("2d");
 var W = canvas.width  = window.innerWidth-6;
 var H = canvas.height = window.innerHeight-50;
-var wscounter = 0;
-var socket;
 
-function debug(str) {
-    var debugDiv = document.getElementById('debug');
-    debugDiv.innerHTML = "" + str;
+
+function sendJSONXMLHTTPRequest(url, objects, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState==4) {
+            try {
+                if (xhr.status==200) {
+                    //XXX: parse some JSON from the request!
+                    //XXX: Pass the data to the callback!
+                    callback(JSON.parse(xhr.responseText));
+                }
+            } 
+            catch(e) {
+                alert('Error: ' + e.name);
+            }
+        }
+    };
+    //XXX: POST to a URL
+    xhr.open("POST", url)
+    //XXX: set the mimetype and the accept headers!
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json');
+    // Remember to use application/json !
+    xhr.send(JSON.stringify(objects));
 }
-debug("Test");
+
 
 world = {};
 
 //XXX: TODO Make this prettier!
 function drawCircle(context,entity) {
     with(context) {
-        beginPath();                
-        lineWidth = 3;
+        beginPath();              
+        lineWidth = 5;
         var x = entity["x"];
         var y = entity["y"];
         //moveTo(x,y);
-        fillStyle = entity["colour"];
-        strokeStyle = fillStyle;
+        if(entity["gradient"] == 'Non'){
+            var gradient = createLinearGradient(0, 2400, 1000,2400);
+            var randomColour = '#'+(0x1000000+(Math.random())*0xffffff).toString(16).substr(1,6);
+            gradient.addColorStop(0, "#B51258");
+            gradient.addColorStop(0.2, "#ED1B76");
+            gradient.addColorStop(0.4, "#F24C94");
+            gradient.addColorStop(0.6, "#F48EBA");
+            gradient.addColorStop(0.8, "#C45F8B	");
+            gradient.addColorStop(1, "#B22260");
+            fillStyle = randomColour;
+            strokeStyle = gradient;
+        }
+        else if (entity["gradient"] == 'True'){
+            var gradient = createLinearGradient(0, 2400, 1000,2400);
+            gradient.addColorStop(0, "#B51258");
+            gradient.addColorStop(0.2, "#ED1B76");
+            gradient.addColorStop(0.4, "#F24C94");
+            gradient.addColorStop(0.6, "#F48EBA");
+            gradient.addColorStop(0.8, "#C45F8B	");
+            gradient.addColorStop(1, "#B22260");
+            fillStyle = entity["colour"];
+            strokeStyle = gradient;
+
+        }
+        else{
+            fillStyle = entity["colour"];
+        
+            strokeStyle = entity["bord_colour"];
+            }
         arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
+        fill();
         stroke();                                
-    }
+       }
+    
 }
 
 function prepEntity(entity) {
@@ -88,6 +140,7 @@ function renderFrame() {
 }
 
 var drawNext = true;
+
 // Signals that there's something to be drawn
 function drawNextFrame() {
     drawNext = true;
@@ -121,13 +174,19 @@ function getPosition(e) {
 	}
 }
 
+
+
 function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
-    //XXX: Send a XHTML Request that updates the entity you just modified!
+    //XXX: Send a XHTML Request that updates the entity you just  modified!
+    sendJSONXMLHTTPRequest('../entity/'+ entity, data,function(which){});
+
 }
+
 var counter = 0;
 function addEntityWithoutName(data) {
+    //var name = "X"+Math.floor((Math.random()*100)+1);
     var name = "X"+(counter++)%100;
     addEntity(name,data);
 }
@@ -212,8 +271,7 @@ mouse = (function() {
             self.lasttouch = e;                                         
             return self.mousemove(e);
 	},
-		                                   
-        // Install the mouse listeners
+	// Install the mouse listeners
 	mouseinstall: function() {
             canvas.addEventListener("mousedown",  self.mousedown, false);
             canvas.addEventListener("mousemove",  self.mousemove, false);
@@ -224,6 +282,7 @@ mouse = (function() {
             canvas.addEventListener("touchend",   self.touchend, false);
 	}
     };
+    // Force install!
     self.mouseinstall();
     return self;
 })();
@@ -231,50 +290,91 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'Indigo','bord_colour':'SlateBlue'});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'DarkMagenta','bord_colour':'DarkSlateBlue'});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'colour':'Thistle',
+                          'radius':12, 'gradient': 'True'});
 });
 
 
 function update() {
-    drawFrame();
-}
-
-
-function wsSetup() {
-    var url = "ws://"+host+"/subscribe";   
-    socket = new WebSocket(url);
-    socket.onopen = function() {
-        //XXX: TODO What are you going to do here?
-    };
-    socket.onerror = function(msg) {
-        debug("WebSocket Error:" + msg.data);
-    };
-    socket.onmessage = function(msg) {  
-        try {
-            debug("WebSocket Recv:" + msg.data);
-            //XXX: TODO What are you going to do here?            
-        } catch (e) {
-            alert("socket on message: " + e);
+    //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
+    sendJSONXMLHTTPRequest('/world', null, function(which){
+        
+        world = which;
+        drawNextFrame();
+        
         }
-    }; 
+    );
+    
+    drawFrame();
+    
 }
 
-wsSetup();
 
+function myFunction() {
+  var checkBox = document.getElementById("myCheck");
+  var text = document.getElementById("text");
+
+  if (checkBox.checked == true){
+    switch_to();
+  } else {
+    switch_back();
+  }
+}
+function switch_to(){
+    sendJSONXMLHTTPRequest('/world', null, function(which){
+        world = which;
+        drawNextFrame();
+        mouse.mousedraggers.push(function(x,y,clicked,e) {
+        addEntityWithoutName({'x':x,'y':y,'colour':'Thistle',
+                          'radius':12, 'gradient': 'Non'});
+});
+        
+        }
+    );
+    
+    drawFrame();
+
+}
+function switch_back(){
+    sendJSONXMLHTTPRequest('/world', null, function(which){
+        world = which;
+        drawNextFrame();
+        mouse.mousedraggers.push(function(x,y,clicked,e) {
+        addEntityWithoutName({'x':x,'y':y,'colour':'Thistle',
+                          'radius':12, 'gradient': 'True'});
+        });
+        }
+    );
+    update();
+    
+    drawFrame();
+
+}
+
+function clear_button(){
+    sendJSONXMLHTTPRequest('/clear', null, function(which){
+        
+        world = which;
+        context.beginPath(); 
+        
+        });
+        
+        
+}
 
 
 
 // 30 frames per second
 setInterval( update, 1000/30.0);
+
 
 
     </script>
