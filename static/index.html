@@ -52,14 +52,15 @@ function drawCircle(context,entity) {
  
         
         var gradient = createLinearGradient(0, 2400, 1000,2400);
+        var randomColour = '#'+(0x1000000+(Math.random())*0xffffff).toString(16).substr(1,6);
         gradient.addColorStop(0, "#B51258");
         gradient.addColorStop(0.2, "#ED1B76");
         gradient.addColorStop(0.4, "#F24C94");
         gradient.addColorStop(0.6, "#F48EBA");
         gradient.addColorStop(0.8, "#C45F8B	");
         gradient.addColorStop(1, "#B22260");
-        fillStyle = entity["colour"];
-        strokeStyle = gradient;
+        fillStyle = randomColour;
+        strokeStyle = randomColour;
 
         
        
@@ -244,16 +245,16 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'Indigo','bord_colour':'SlateBlue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'Indigo','radius':14});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'DarkMagenta','bord_colour':'DarkSlateBlue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'DarkMagenta','radius':14});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
     addEntityWithoutName({'x':x,'y':y,'colour':'Thistle',
-                          'radius':12});
+                          'radius':7});
 });
 function update() {
     drawFrame();
