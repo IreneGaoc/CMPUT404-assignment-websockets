@@ -73,7 +73,9 @@ myWorld = World()
 clients = list()
 def set_listener( entity, data ):
     ''' do something with the update ! '''
-    msg = json.dumps({entity: data})
+    en = {}
+    en[entity] = data
+    msg = json.dumps(en)
     for client in clients:
         client.put(msg)
 myWorld.add_set_listener( set_listener )
